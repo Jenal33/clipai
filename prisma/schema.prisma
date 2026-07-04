@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum Status {
+  QUEUED
+  PROCESSING
+  DONE
+  FAILED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  hashedPassword String?
+  tokenBalance  Int       @default(15)
+  plan          Plan      @default(FREE)
+  planExpiresAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  projects      Project[]
+  payments      Payment[]
+  feedbacks     Feedback[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  access_token      String?
+  refresh_token     String?
+  expires_at        Int?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Used for email verification links (identifier = user email)
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+// Separate model for password reset links, kept apart from VerificationToken
+// so a leaked/expired verification token can never be replayed as a password reset.
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  email      String
+  token      String   @unique
+  expires    DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([email])
+}
+
+model Project {
+  id         String   @id @default(cuid())
+  youtubeUrl String
+  title      String?
+  thumbnail  String?
+  duration   Int?
+  status     Status   @default(QUEUED)
+  jobId      String?
+  progress   Int      @default(0)
+  errorMessage String?
+  tokenCost  Int      @default(3)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  clips      Clip[]
+}
+
+model Clip {
+  id            String   @id @default(cuid())
+  title         String?
+  startSec      Float
+  endSec        Float
+  duration      Int?
+  viralityScore Int      @default(0)
+  hook          String?
+  reason        String?
+  storageUrl    String?
+  thumbnailUrl  String?
+  transcript    String?
+  tags          String[]
+  platform      String[]
+  subtitleUrl   String?
+  createdAt     DateTime @default(now())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id])
+}
+
+model Payment {
+  id              String    @id @default(cuid())
+  orderId         String    @unique
+  amount          Int
+  tokenAmount     Int
+  status          String    @default("pending")
+  snapToken       String?
+  midtransOrderId String?
+  paymentProvider String?    // "midtrans" atau "tripay"
+  paymentRef      String?    // Tripay reference / transaction reference
+  paymentMethod   String?    // QRIS, BCA, GOPAY, dll
+  createdAt       DateTime  @default(now())
+  settledAt       DateTime?
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?
+  message   String   @db.Text
+  mood      String?  // "praise", "criticism", "suggestion", "rant"
+  page      String?  // halaman dimana feedback dikirim
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+}

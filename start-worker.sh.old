@@ -1,0 +1,4 @@
+#!/bin/bash
+export DATABASE_URL="postgresql://postgres:Gaclek13@localhost:5432/clipai"
+cd /home/je3393/clipai
+exec npx tsx src/workers/clipWorker.ts
