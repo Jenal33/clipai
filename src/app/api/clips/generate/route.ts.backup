@@ -1,0 +1,77 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { z } from 'zod'
+
+const schema = z.object({
+  youtubeUrl: z.string().url(),
+  userId: z.string(),
+})
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const { youtubeUrl, userId } = schema.parse(body)
+
+    // Cek token user
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { tokenBalance: true }
+    })
+    if (!user || user.tokenBalance < 5) {
+      return NextResponse.json({ error: 'Token tidak cukup' }, { status: 402 })
+    }
+
+    // Buat project
+    const project = await prisma.project.create({
+      data: { youtubeUrl, userId, status: 'PROCESSING', progress: 0 }
+    })
+
+    // 1. Tembak Python di background tanpa pakai 'await' di depannya
+    fetch(`${process.env.PYTHON_BACKEND_URL}/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId: project.id, youtubeUrl })
+    })
+      .then(response => response.json())
+      .then(async (data) => {
+        // 2. Pas Python beres dan ngirim data klip, kode ini bakal jalan!
+        console.log("✅ Sukses dari Python:", data);
+
+        // Simpan clips ke database
+        const { clips, r2Urls, transcript } = data
+        for (let i = 0; i < clips.length; i++) {
+          await prisma.clip.create({
+            data: {
+              projectId: project.id,
+              startSec: clips[i].startSec,
+              endSec: clips[i].endSec,
+              viralityScore: clips[i].viralityScore,
+              storageUrl: r2Urls?.[i] || clips[i].storageUrl || null,
+              transcript: transcript,
+              tags: clips[i].tags || []
+            }
+          })
+        }
+
+        // Update status ke DONE
+        await prisma.project.update({
+          where: { id: project.id },
+          data: { status: 'DONE', progress: 100 }
+        })
+
+        // Kurangi token
+        await prisma.user.update({
+          where: { id: userId },
+          data: { tokenBalance: { decrement: 5 } }
+        })
+      })
+      .catch(err => console.error("❌ Error dari Python:", err))
+
+    // 3. UI langsung dikasih lampu hijau biar bisa muter progress bar
+    return NextResponse.json({ success: true, projectId: project.id })
+
+  } catch (err) {
+    console.error('DETAIL ERROR:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
+}

@@ -1,61 +1,38 @@
-import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import bcrypt from "bcryptjs"
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { email, password, name } = await req.json()
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email dan password wajib diisi" },
-        { status: 400 }
-      )
+    const { name, email, password } = await req.json()
+    
+    if (!email || !password || password.length < 6) {
+      return NextResponse.json({ error: 'Data tidak valid. Password minimal 6 karakter.' }, { status: 400 })
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: "Password minimal 6 karakter" },
-        { status: 400 }
-      )
-    }
-
-    const existing = await prisma.user.findUnique({ where: { email } })
-    if (existing) {
-      return NextResponse.json(
-        { error: "Email sudah terdaftar" },
-        { status: 409 }
-      )
+    const emailLower = email.toLowerCase().trim()
+    const existingUser = await prisma.user.findUnique({ where: { email: emailLower } })
+    
+    if (existingUser) {
+      return NextResponse.json({ error: 'Email sudah terdaftar' }, { status: 400 })
     }
 
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    const user = await prisma.user.create({
+    // Buat user baru di database
+    await prisma.user.create({
       data: {
-        email,
-        name: name || email.split("@")[0],
+        name: name || '',
+        email: emailLower,
         hashedPassword,
         tokenBalance: 15,
-        emailVerified: new Date(), // Langsung diverifikasi (Resend free tier terbatas)
+        emailVerified: new Date(), // FIX: Auto-verify aktif, langsung tembus login
       },
     })
 
-    // TODO: Kirim email verifikasi beneran nanti kalo udah verify domain di Resend
-    // const token = crypto.randomBytes(32).toString("hex")
-    // await prisma.verificationToken.create({...})
-    // await sendVerificationEmail(email, token)
-
-    return NextResponse.json({
-      message: "Akun berhasil dibuat! Langsung login aja.",
-      id: user.id,
-      email: user.email,
-      verified: true,
-    })
-  } catch (error) {
-    console.error("Signup error:", error)
-    return NextResponse.json(
-      { error: "Terjadi kesalahan. Coba lagi." },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: true, message: 'Akun berhasil dibuat' })
+  } catch (err: any) {
+    console.error('Signup error:', err)
+    return NextResponse.json({ error: 'Terjadi kesalahan saat mendaftar' }, { status: 500 })
   }
 }

@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClipAI — AI Video Clipper Blueprint</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --void: #050508;
+    --deep: #0a0a12;
+    --surface: #111118;
+    --panel: #16161f;
+    --border: #1e1e2e;
+    --border-bright: #2a2a3e;
+    --accent: #7c3aed;
+    --accent-glow: #9d5fff;
+    --accent-soft: rgba(124,58,237,0.15);
+    --neon: #22d3ee;
+    --neon-soft: rgba(34,211,238,0.12);
+    --green: #10b981;
+    --red: #f43f5e;
+    --yellow: #f59e0b;
+    --text-primary: #f1f0f8;
+    --text-secondary: #8b8ba7;
+    --text-muted: #4a4a6a;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+    --body: 'Inter', sans-serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  
+  body {
+    font-family: var(--body);
+    background: var(--void);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+  /* ── NAV ── */
+  .nav {
+    position: fixed; top:0; left:0; right:0; z-index:100;
+    display: flex; align-items:center; justify-content:space-between;
+    padding: 16px 32px;
+    background: rgba(5,5,8,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-family: var(--sans);
+    font-size: 20px; font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-glow), var(--neon));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--text-secondary); -webkit-text-fill-color: var(--text-secondary); }
+  .nav-tabs {
+    display: flex; gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px;
+  }
+  .nav-tab {
+    padding: 7px 16px; border-radius: 7px;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+    color: var(--text-secondary);
+    border: none; background: none;
+    font-family: var(--body);
+  }
+  .nav-tab:hover { color: var(--text-primary); background: var(--panel); }
+  .nav-tab.active {
+    background: var(--accent); color: #fff;
+  }
+  .nav-right { display:flex; gap:12px; align-items:center; }
+  .badge-token {
+    display:flex; align-items:center; gap:6px;
+    padding: 6px 12px;
+    background: var(--neon-soft);
+    border: 1px solid rgba(34,211,238,0.25);
+    border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+    color: var(--neon);
+    font-family: var(--mono);
+  }
+  .btn-primary {
+    padding: 8px 18px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    border: none; color: #fff;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+    font-family: var(--body);
+    box-shadow: 0 0 20px rgba(124,58,237,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 30px rgba(124,58,237,0.5); }
+
+  /* ── PAGES ── */
+  .page { display: none; padding-top: 72px; min-height: 100vh; }
+  .page.active { display: block; }
+
+  /* ══════════════════════════════════
+     PAGE 1: LANDING
+  ══════════════════════════════════ */
+  .landing { }
+
+  /* Hero */
+  .hero {
+    position: relative; overflow: hidden;
+    padding: 100px 32px 80px;
+    text-align: center;
+  }
+  .hero-bg {
+    position:absolute; inset:0; z-index:0;
+    background:
+      radial-gradient(ellipse 800px 500px at 50% 0%, rgba(124,58,237,0.2) 0%, transparent 70%),
+      radial-gradient(ellipse 600px 400px at 20% 100%, rgba(34,211,238,0.1) 0%, transparent 60%);
+  }
+  .hero-grid {
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.3;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent);
+  }
+  .hero-content { position: relative; z-index:1; max-width: 800px; margin: 0 auto; }
+  .hero-eyebrow {
+    display: inline-flex; align-items:center; gap: 8px;
+    padding: 6px 14px; border-radius: 20px;
+    border: 1px solid rgba(34,211,238,0.3);
+    background: var(--neon-soft);
+    font-size: 12px; font-weight: 500;
+    color: var(--neon); letter-spacing: 0.5px;
+    margin-bottom: 28px;
+    font-family: var(--mono);
+  }
+  .hero-title {
+    font-family: var(--sans);
+    font-size: clamp(40px, 6vw, 72px);
+    font-weight: 700; line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 20px;
+  }
+  .hero-title .grad {
+    background: linear-gradient(135deg, #fff 0%, var(--accent-glow) 50%, var(--neon) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    font-size: 18px; color: var(--text-secondary);
+    line-height: 1.6; max-width: 560px; margin: 0 auto 40px;
+    font-weight: 400;
+  }
+  .hero-input-row {
+    display: flex; gap: 10px; max-width: 600px; margin: 0 auto 20px;
+  }
+  .hero-input {
+    flex:1; padding: 14px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px; font-family: var(--mono);
+    outline: none; transition: border 0.2s;
+  }
+  .hero-input:focus { border-color: var(--accent); }
+  .hero-input::placeholder { color: var(--text-muted); }
+  .btn-hero {
+    padding: 14px 28px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    border: none; color: #fff;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+    font-family: var(--sans);
+    box-shadow: 0 0 40px rgba(124,58,237,0.4);
+    transition: all 0.2s;
+  }
+  .btn-hero:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(124,58,237,0.6); }
+  .hero-note { font-size: 13px; color: var(--text-muted); }
+  .hero-note b { color: var(--neon); }
+
+  /* Pipeline visual */
+  .pipeline-section {
+    padding: 60px 32px;
+    border-top: 1px solid var(--border);
+  }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 500;
+    color: var(--accent-glow); letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: var(--sans);
+    font-size: 28px; font-weight: 700;
+    letter-spacing: -0.5px; margin-bottom: 8px;
+  }
+  .section-sub { color: var(--text-secondary); font-size: 15px; margin-bottom: 40px; }
+
+  .pipeline-track {
+    display: flex; align-items: stretch; gap: 0;
+    overflow-x: auto; padding-bottom: 8px;
+  }
+  .pipeline-step {
+    flex: 0 0 auto; min-width: 130px;
+    display: flex; flex-direction: column; align-items: center;
+    position: relative;
+  }
+  .pipeline-step:not(:last-child)::after {
+    content: ''; position: absolute;
+    top: 28px; left: calc(50% + 32px);
+    width: calc(100% - 64px); height: 1px;
+    background: linear-gradient(90deg, var(--accent), var(--neon));
+    opacity: 0.4;
+  }
+  .step-num {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items:center; justify-content:center;
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    margin-bottom: 10px; position: relative; z-index:1;
+    border: 1px solid var(--border-bright);
+  }
+  .step-num.c1 { background: rgba(124,58,237,0.2); color: var(--accent-glow); border-color: rgba(124,58,237,0.4); }
+  .step-num.c2 { background: rgba(34,211,238,0.15); color: var(--neon); border-color: rgba(34,211,238,0.35); }
+  .step-label { font-size: 11px; color: var(--text-secondary); text-align:center; line-height:1.4; }
+  .step-model {
+    font-size: 10px; color: var(--text-muted);
+    font-family: var(--mono); margin-top: 4px;
+    text-align: center;
+  }
+
+  /* Features */
+  .features-section { padding: 60px 32px; border-top: 1px solid var(--border); }
+  .features-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;
+  }
+  .feature-card {
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .feature-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .feature-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+  .feature-card:hover::before { opacity: 1; }
+  .feature-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 20px; margin-bottom: 14px;
+  }
+  .feature-icon.purple { background: var(--accent-soft); }
+  .feature-icon.cyan { background: var(--neon-soft); }
+  .feature-icon.green { background: rgba(16,185,129,0.12); }
+  .feature-name { font-family: var(--sans); font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .feature-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  .feature-model {
+    margin-top: 12px; display:inline-flex; align-items:center; gap: 5px;
+    padding: 3px 8px; border-radius: 5px;
+    background: var(--panel); border: 1px solid var(--border);
+    font-family: var(--mono); font-size: 10px; color: var(--accent-glow);
+  }
+
+  /* AI Models Table */
+  .models-section { padding: 60px 32px; border-top: 1px solid var(--border); }
+  .models-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden;
+  }
+  .models-table th {
+    padding: 14px 20px; text-align: left;
+    background: var(--panel);
+    font-size: 11px; font-weight: 600;
+    color: var(--text-muted); letter-spacing: 1px;
+    text-transform: uppercase; font-family: var(--mono);
+    border-bottom: 1px solid var(--border);
+  }
+  .models-table td {
+    padding: 14px 20px;
+    font-size: 13px; color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+  .models-table tr:last-child td { border-bottom: none; }
+  .models-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .model-name {
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+    color: var(--accent-glow);
+    padding: 2px 7px; border-radius: 4px;
+    background: var(--accent-soft);
+    display: inline-block;
+  }
+
+  /* Pricing */
+  .pricing-section { padding: 60px 32px; border-top: 1px solid var(--border); }
+  .pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; max-width: 900px; margin: 0 auto; }
+  .price-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; text-align: center;
+    position: relative; transition: all 0.2s;
+  }
+  .price-card.featured {
+    border-color: var(--accent);
+    background: linear-gradient(160deg, var(--accent-soft), var(--surface));
+    box-shadow: 0 0 40px rgba(124,58,237,0.15);
+  }
+  .price-card:hover { transform: translateY(-4px); }
+  .plan-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    padding: 4px 14px; border-radius: 20px;
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    font-size: 11px; font-weight: 700; color: #fff;
+    font-family: var(--mono); letter-spacing: 0.5px;
+  }
+  .plan-name { font-family: var(--sans); font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .plan-price {
+    font-family: var(--sans); font-size: 36px; font-weight: 700;
+    color: var(--accent-glow); margin-bottom: 4px; letter-spacing: -1px;
+  }
+  .plan-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+  .plan-features { list-style:none; text-align:left; margin-bottom: 24px; }
+  .plan-features li {
+    padding: 6px 0; font-size: 13px; color: var(--text-secondary);
+    display: flex; align-items:center; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .plan-features li:last-child { border-bottom: none; }
+  .plan-features li::before { content:'✓'; color: var(--green); font-weight: 700; font-size: 12px; }
+  .btn-plan {
+    width: 100%; padding: 11px;
+    border-radius: 8px; border: 1px solid var(--accent);
+    background: none; color: var(--accent-glow);
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; font-family: var(--body);
+  }
+  .price-card.featured .btn-plan {
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    color: #fff; border-color: transparent;
+  }
+  .btn-plan:hover { transform: translateY(-1px); }
+
+  /* ══════════════════════════════════
+     PAGE 2: CLIPPER
+  ══════════════════════════════════ */
+  .clipper-page { padding: 88px 32px 40px; }
+  .clipper-layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; min-height: calc(100vh - 128px); }
+
+  /* Left Panel */
+  .clip-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px;
+    display: flex; flex-direction: column; gap: 20px;
+    height: fit-content;
+  }
+  .panel-title { font-family: var(--sans); font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+  .panel-sub { font-size: 12px; color: var(--text-muted); }
+  .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  .url-input-wrap { position: relative; }
+  .url-input {
+    width: 100%; padding: 12px 40px 12px 14px;
+    background: var(--panel); border: 1px solid var(--border-bright);
+    border-radius: 10px; color: var(--text-primary);
+    font-size: 13px; font-family: var(--mono); outline: none;
+    transition: border 0.2s;
+  }
+  .url-input:focus { border-color: var(--accent); }
+  .url-icon {
+    position:absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 16px;
+  }
+
+  .field-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+  
+  .setting-row {
+    display: flex; align-items:center; justify-content:space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-name { font-size: 13px; }
+  .setting-val { font-family: var(--mono); font-size: 12px; color: var(--accent-glow); }
+
+  .toggle-row {
+    display: flex; justify-content:space-between; align-items:center;
+    padding: 8px 0;
+  }
+  .toggle-label { font-size: 13px; color: var(--text-secondary); }
+  .toggle {
+    width: 36px; height: 20px; border-radius: 10px;
+    position: relative; cursor: pointer; transition: background 0.2s;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle.off { background: var(--border-bright); }
+  .toggle::after {
+    content:''; position:absolute;
+    top: 2px; width: 16px; height: 16px;
+    border-radius: 50%; background: #fff;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 18px; }
+  .toggle.off::after { left: 2px; }
+
+  .token-cost {
+    display: flex; justify-content:space-between; align-items:center;
+    padding: 12px 14px; border-radius: 10px;
+    background: var(--neon-soft); border: 1px solid rgba(34,211,238,0.2);
+  }
+  .token-label { font-size: 12px; color: var(--text-secondary); }
+  .token-val { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--neon); }
+
+  .btn-generate {
+    width: 100%; padding: 14px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    border: none; color: #fff;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    font-family: var(--sans);
+    box-shadow: 0 0 30px rgba(124,58,237,0.35);
+    transition: all 0.2s; letter-spacing: -0.3px;
+  }
+  .btn-generate:hover { box-shadow: 0 0 50px rgba(124,58,237,0.55); transform:translateY(-1px); }
+
+  /* Right Panel - Results */
+  .clip-results { display: flex; flex-direction:column; gap: 16px; }
+
+  .results-header {
+    display: flex; justify-content:space-between; align-items:center;
+    padding: 16px 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .results-title { font-family: var(--sans); font-size: 15px; font-weight: 700; }
+  .results-meta { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+  .results-actions { display:flex; gap: 8px; }
+  .btn-sm {
+    padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; font-family: var(--body);
+    border: 1px solid var(--border-bright); background: var(--panel);
+    color: var(--text-secondary);
+  }
+  .btn-sm:hover { color: var(--text-primary); border-color: var(--accent); }
+  .btn-sm.active { background: var(--accent); color: #fff; border-color: transparent; }
+
+  .clip-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+    transition: all 0.2s;
+  }
+  .clip-card:hover { border-color: var(--border-bright); }
+  .clip-card.selected { border-color: var(--accent); box-shadow: 0 0 20px rgba(124,58,237,0.15); }
+
+  .clip-card-inner { display: grid; grid-template-columns: 160px 1fr auto; }
+
+  .clip-thumb {
+    width: 160px; height: 120px;
+    background: linear-gradient(135deg, var(--panel), var(--deep));
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .clip-thumb-ratio {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width: 56px; height: 100px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    background: linear-gradient(180deg, rgba(124,58,237,0.3), rgba(34,211,238,0.15));
+    display: flex; align-items:center; justify-content:center;
+    font-size: 24px;
+  }
+  .clip-badge {
+    position:absolute; bottom:6px; left:6px;
+    padding: 2px 7px; border-radius: 4px;
+    font-size: 10px; font-family: var(--mono); font-weight: 600;
+    background: rgba(0,0,0,0.7);
+    color: var(--text-primary);
+  }
+
+  .clip-info { padding: 16px; }
+  .clip-title { font-family: var(--sans); font-size: 14px; font-weight: 600; margin-bottom: 6px; line-height: 1.4; }
+  .clip-ts { font-family: var(--mono); font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+  .clip-tags { display:flex; flex-wrap:wrap; gap: 5px; margin-bottom: 10px; }
+  .clip-tag {
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-family: var(--mono);
+    background: var(--panel); border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .clip-caption-preview {
+    font-size: 12px; color: var(--text-muted);
+    line-height: 1.5; font-style: italic;
+    border-left: 2px solid var(--border-bright);
+    padding-left: 8px;
+  }
+
+  .clip-actions {
+    padding: 16px; display:flex; flex-direction:column;
+    gap: 8px; justify-content:center; min-width: 130px;
+    border-left: 1px solid var(--border);
+  }
+
+  /* Virality Score */
+  .score-wrap { display:flex; align-items:center; gap: 8px; margin-bottom: 10px; }
+  .score-label { font-size: 11px; color: var(--text-muted); }
+  .score-bar { flex:1; height: 6px; background: var(--border); border-radius: 3px; overflow:hidden; }
+  .score-fill { height:100%; border-radius: 3px; }
+  .score-val { font-family: var(--mono); font-size: 12px; font-weight: 600; }
+
+  /* Processing State */
+  .processing-overlay {
+    padding: 60px; text-align:center;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .progress-steps { max-width: 400px; margin: 0 auto 30px; }
+  .prog-step {
+    display:flex; align-items:center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .prog-step:last-child { border:none; }
+  .prog-icon { font-size: 16px; }
+  .prog-text { flex:1; }
+  .prog-status { font-family: var(--mono); font-size: 11px; }
+  .prog-done { color: var(--green); }
+  .prog-active { color: var(--yellow); }
+  .prog-pending { color: var(--text-muted); }
+
+  /* ══════════════════════════════════
+     PAGE 3: DASHBOARD
+  ══════════════════════════════════ */
+  .dashboard-page { padding: 88px 32px 40px; }
+  .dashboard-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+  .stat-label { font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 8px; font-family: var(--mono); }
+  .stat-val { font-family: var(--sans); font-size: 28px; font-weight: 700; letter-spacing: -1px; margin-bottom: 4px; }
+  .stat-sub { font-size: 12px; color: var(--text-secondary); }
+  .stat-green { color: var(--green); }
+  .stat-purple { color: var(--accent-glow); }
+  .stat-cyan { color: var(--neon); }
+  .stat-yellow { color: var(--yellow); }
+
+  .dash-main { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+  .projects-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .panel-header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .panel-header-title { font-family: var(--sans); font-size: 14px; font-weight: 700; }
+
+  .project-row {
+    display: grid; grid-template-columns: 56px 1fr auto;
+    gap: 14px; align-items:center;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    transition: background 0.15s; cursor: pointer;
+  }
+  .project-row:hover { background: rgba(255,255,255,0.02); }
+  .project-thumb {
+    width: 56px; height: 40px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--panel), var(--deep));
+    display: flex; align-items:center; justify-content:center;
+    font-size: 18px;
+  }
+  .project-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .project-meta { font-size: 11px; color: var(--text-muted); font-family: var(--mono); }
+  .project-status {
+    padding: 3px 9px; border-radius: 20px;
+    font-size: 11px; font-weight: 500; font-family: var(--mono);
+  }
+  .status-done { background: rgba(16,185,129,0.15); color: var(--green); }
+  .status-proc { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .status-draft { background: var(--panel); color: var(--text-muted); }
+
+  .side-panel {
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .token-card {
+    background: linear-gradient(135deg, var(--accent-soft), var(--surface));
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 14px; padding: 20px;
+  }
+  .token-card-title { font-family: var(--sans); font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+  .token-big { font-family: var(--sans); font-size: 42px; font-weight: 700; color: var(--accent-glow); letter-spacing: -2px; margin-bottom: 4px; }
+  .token-small { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; }
+  .token-bar { height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 16px; overflow:hidden; }
+  .token-bar-fill { height:100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--neon)); width: 68%; }
+
+  .activity-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden; flex:1;
+  }
+  .activity-item {
+    display:flex; gap: 10px; align-items:flex-start;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .activity-icon { font-size: 14px; margin-top: 1px; }
+  .activity-text { color: var(--text-secondary); line-height: 1.5; }
+  .activity-text b { color: var(--text-primary); }
+  .activity-time { font-family: var(--mono); font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+
+  /* ══════════════════════════════════
+     PAGE 4: ARCHITECTURE
+  ══════════════════════════════════ */
+  .arch-page { padding: 88px 32px 60px; }
+  .arch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .arch-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px;
+  }
+  .arch-card-full { grid-column: 1 / -1; }
+  .arch-title { font-family: var(--sans); font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .arch-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; font-family: var(--mono); }
+
+  .stack-item {
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .stack-item:last-child { border:none; }
+  .stack-role { font-size: 12px; color: var(--text-secondary); min-width: 120px; }
+  .stack-tech {
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+    color: var(--text-primary);
+  }
+  .stack-note { font-size: 11px; color: var(--text-muted); text-align:right; }
+
+  .code-block {
+    background: var(--deep); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+    font-family: var(--mono); font-size: 12px;
+    line-height: 1.8; overflow-x: auto;
+  }
+  .code-comment { color: #4a4a6a; }
+  .code-key { color: var(--neon); }
+  .code-val { color: var(--accent-glow); }
+  .code-str { color: var(--green); }
+  .code-fn { color: #fb923c; }
+
+  .pipe-flow { display:flex; flex-direction:column; gap: 0; }
+  .pipe-row {
+    display:grid; grid-template-columns: 30px 1fr 1fr;
+    gap: 10px; align-items:center;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .pipe-row:last-child { border:none; }
+  .pipe-n { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+  .pipe-step { font-weight: 500; }
+  .pipe-tool { font-family: var(--mono); font-size: 11px; color: var(--accent-glow); }
+
+  .env-var {
+    display:flex; align-items:center; gap: 8px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .env-var:last-child { border:none; }
+  .env-key { font-family: var(--mono); color: var(--neon); min-width: 220px; }
+  .env-desc { color: var(--text-secondary); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--deep); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+  /* responsive */
+  @media (max-width: 900px) {
+    .clipper-layout { grid-template-columns: 1fr; }
+    .dashboard-grid { grid-template-columns: repeat(2,1fr); }
+    .dash-main { grid-template-columns: 1fr; }
+    .arch-grid { grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .clip-card-inner { grid-template-columns: 1fr; }
+    .clip-thumb { width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="logo">Clip<span>AI</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('landing')">🏠 Landing</button>
+    <button class="nav-tab" onclick="showPage('clipper')">✂️ Clipper</button>
+    <button class="nav-tab" onclick="showPage('dashboard')">📊 Dashboard</button>
+    <button class="nav-tab" onclick="showPage('arch')">🏗️ Architecture</button>
+  </div>
+  <div class="nav-right">
+    <div class="badge-token">⚡ 1,240 tokens</div>
+    <button class="btn-primary">Upgrade Plan</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════
+     PAGE 1: LANDING
+══════════════════════════════════ -->
+<div id="page-landing" class="page active">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">✦ Powered by Whisper · Claude · MediaPipe · FFmpeg</div>
+      <h1 class="hero-title">
+        Satu YouTube URL<br>
+        <span class="grad">Puluhan Klip Viral.</span>
+      </h1>
+      <p class="hero-sub">
+        AI kami otomatis deteksi momen terbaik, reframe ke 9:16, tambahkan caption, dan hitung virality score — siap upload ke TikTok, Reels & Shorts.
+      </p>
+      <div class="hero-input-row">
+        <input class="hero-input" type="text" placeholder="https://youtube.com/watch?v=..." id="heroUrl">
+        <button class="btn-hero" onclick="showPage('clipper'); document.getElementById('clipperUrl').value='https://youtube.com/watch?v=dQw4w9WgXcQ'">Generate Clips ✦</button>
+      </div>
+      <p class="hero-note">Coba gratis · <b>3 klip / hari</b> tanpa kartu kredit</p>
+    </div>
+  </section>
+
+  <!-- PIPELINE VISUAL -->
+  <section class="pipeline-section" style="max-width:1100px;margin:0 auto;">
+    <div class="section-label">// PIPELINE</div>
+    <h2 class="section-title">Cara kerja ClipAI</h2>
+    <p class="section-sub">9 langkah otomatis dari URL ke klip siap posting</p>
+    <div class="pipeline-track">
+      <div class="pipeline-step">
+        <div class="step-num c1">01</div>
+        <div class="step-label">Download<br>Video</div>
+        <div class="step-model">yt-dlp</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num c1">02</div>
+        <div class="step-label">Extract<br>Audio</div>
+        <div class="step-model">FFmpeg</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num c2">03</div>
+        <div class="step-label">Transkripsi<br>99 bahasa</div>
+        <div class="step-model">Whisper large-v3</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num c2">04</div>
+        <div class="step-label">Analisis<br>Momen Viral</div>
+        <div class="step-model">Claude / GPT-4o</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num c2">05</div>
+        <div class="step-label">Face<br>Detection</div>
+        <div class="step-model">MediaPipe</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num c1">06</div>
+        <div class="step-label">Render<br>9:16</div>
+        <div class="step-model">FFmpeg + reframe</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num c1">07</div>
+        <div class="step-label">Burn<br>Captions</div>
+        <div class="step-model">FFmpeg subtitle</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num c2">08</div>
+        <div class="step-label">Virality<br>Score</div>
+        <div class="step-model">Custom ML Model</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num c1">09</div>
+        <div class="step-label">Download<br>Klip</div>
+        <div class="step-model">R2 / S3</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features-section" style="max-width:1100px;margin:0 auto;">
+    <div class="section-label">// FITUR</div>
+    <h2 class="section-title">Semua yang lo butuhkan</h2>
+    <p class="section-sub">5 fitur inti yang bikin konten creator lo ngirit waktu berjam-jam</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon purple">✂️</div>
+        <div class="feature-name">AI Clip Detection</div>
+        <div class="feature-desc">Deteksi otomatis momen viral, hook, dan highlight berdasarkan analisis semantik + audio energy.</div>
+        <div class="feature-model">Claude 3.5 Sonnet · GPT-4o</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon cyan">📱</div>
+        <div class="feature-name">Smart Vertical Reframe</div>
+        <div class="feature-desc">Face tracking real-time dengan MediaPipe. Subjek selalu di frame meski bergerak ke mana-mana.</div>
+        <div class="feature-model">MediaPipe · OpenCV + YOLOv8</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon green">💬</div>
+        <div class="feature-name">Auto Caption & Subtitle</div>
+        <div class="feature-desc">Transkripsi akurasi 99%, 99 bahasa. Burn langsung ke video dengan style yang bisa dikustomisasi.</div>
+        <div class="feature-model">Whisper large-v3</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon purple">🔥</div>
+        <div class="feature-name">Virality Score</div>
+        <div class="feature-desc">Scoring berbasis data engagement jutaan konten. Prioritas klip terbaik untuk diposting duluan.</div>
+        <div class="feature-model">Custom ML Scoring Model</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon cyan">🎬</div>
+        <div class="feature-name">B-Roll & Efek</div>
+        <div class="feature-desc">Tambah transisi, efek visual, dan b-roll overlay. Bikin klip makin cinematic tanpa Adobe Premiere.</div>
+        <div class="feature-model">FFmpeg · Custom Effects</div>
+      </div>
+      <div class="feature-card" style="border-style:dashed; display:flex; flex-direction:column; justify-content:center; text-align:center;">
+        <div style="font-size:28px; margin-bottom:10px;">+</div>
+        <div class="feature-name">Lebih banyak fitur</div>
+        <div class="feature-desc" style="font-size:12px;">Segment scheduler, A/B title generator, thumbnail AI, dan lainnya — coming soon.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI MODELS TABLE -->
+  <section class="models-section" style="max-width:1100px;margin:0 auto;">
+    <div class="section-label">// AI STACK</div>
+    <h2 class="section-title">Model AI yang digunakan</h2>
+    <p class="section-sub">Best-in-class untuk setiap tahap pipeline</p>
+    <table class="models-table">
+      <thead>
+        <tr>
+          <th>Kebutuhan</th>
+          <th>Model / Tools</th>
+          <th>Keterangan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Transkripsi & Caption</td>
+          <td><span class="model-name">Whisper large-v3</span></td>
+          <td style="color:var(--text-muted)">Open-source, akurasi tinggi, 99 bahasa termasuk Bahasa Indonesia</td>
+        </tr>
+        <tr>
+          <td>Analisis Konten Viral</td>
+          <td><span class="model-name">Claude 3.5 Sonnet</span> <span style="color:var(--text-muted);font-size:12px;">atau</span> <span class="model-name">GPT-4o</span></td>
+          <td style="color:var(--text-muted)">Identifikasi timestamp momen viral, hook, dan highlight semantik</td>
+        </tr>
+        <tr>
+          <td>Face Tracking / Reframe</td>
+          <td><span class="model-name">MediaPipe</span> <span style="color:var(--text-muted);font-size:12px;">/ </span><span class="model-name">OpenCV + YOLOv8</span></td>
+          <td style="color:var(--text-muted)">Google MediaPipe untuk real-time face tracking, YOLOv8 fallback</td>
+        </tr>
+        <tr>
+          <td>Deteksi Momen Viral / Hook</td>
+          <td><span class="model-name">Custom ML Classifier</span></td>
+          <td style="color:var(--text-muted)">Fine-tuned classifier audio+visual berbasis engagement data historis</td>
+        </tr>
+        <tr>
+          <td>Virality Score</td>
+          <td><span class="model-name">Custom Scoring Model</span></td>
+          <td style="color:var(--text-muted)">Scoring model berbasis data engagement dari jutaan konten viral</td>
+        </tr>
+        <tr>
+          <td>Video Processing / Render</td>
+          <td><span class="model-name">FFmpeg</span></td>
+          <td style="color:var(--text-muted)">Backend cloud, GPU-accelerated untuk render cepat</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing-section" style="max-width:1100px;margin:0 auto;">
+    <div class="section-label" style="text-align:center">// HARGA</div>
+    <h2 class="section-title" style="text-align:center">Bayar sesuai kebutuhan</h2>
+    <p class="section-sub" style="text-align:center;margin-bottom:40px">Token habis? Top-up kapan saja via Midtrans</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">Gratis</div>
+        <div class="plan-sub">3 klip / hari selamanya</div>
+        <ul class="plan-features">
+          <li>3 klip per hari</li>
+          <li>Resolusi 720p</li>
+          <li>Watermark ClipAI</li>
+          <li>Auto caption</li>
+        </ul>
+        <button class="btn-plan">Mulai Gratis</button>
+      </div>
+      <div class="price-card featured">
+        <div class="plan-badge">TERPOPULER</div>
+        <div class="plan-name">Creator</div>
+        <div class="plan-price">Rp 99K</div>
+        <div class="plan-sub">per bulan · 500 token/bulan</div>
+        <ul class="plan-features">
+          <li>500 token / bulan</li>
+          <li>Resolusi 1080p</li>
+          <li>Tanpa watermark</li>
+          <li>B-Roll & efek</li>
+          <li>Priority queue</li>
+        </ul>
+        <button class="btn-plan">Mulai Creator</button>
+      </div>
+      <div class="price-card">
+        <div class="plan-name">Studio</div>
+        <div class="plan-price">Rp 299K</div>
+        <div class="plan-sub">per bulan · 2000 token/bulan</div>
+        <ul class="plan-features">
+          <li>2000 token / bulan</li>
+          <li>Resolusi 4K</li>
+          <li>API access</li>
+          <li>Custom branding</li>
+          <li>Dedikasi support</li>
+        </ul>
+        <button class="btn-plan">Mulai Studio</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ══════════════════════════════════
+     PAGE 2: CLIPPER
+══════════════════════════════════ -->
+<div id="page-clipper" class="page">
+<div class="clipper-page">
+  <div class="clipper-layout">
+
+    <!-- LEFT PANEL -->
+    <div class="clip-panel">
+      <div>
+        <div class="panel-title">✂️ Generate Klip</div>
+        <div class="panel-sub">Paste URL YouTube, atur setting, generate.</div>
+      </div>
+      <div class="divider"></div>
+
+      <!-- URL -->
+      <div>
+        <div class="field-label">URL VIDEO</div>
+        <div class="url-input-wrap">
+          <input class="url-input" type="text" id="clipperUrl" placeholder="https://youtube.com/watch?v=...">
+          <span class="url-icon">🔗</span>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div>
+        <div class="field-label">PENGATURAN KLIP</div>
+        <div class="setting-row">
+          <span class="setting-name">Jumlah klip max</span>
+          <span class="setting-val">10 klip</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-name">Durasi per klip</span>
+          <span class="setting-val">15–90 detik</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-name">Format output</span>
+          <span class="setting-val">9:16 (Vertical)</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-name">Resolusi</span>
+          <span class="setting-val">1080 × 1920</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-name">Bahasa caption</span>
+          <span class="setting-val">Bahasa Indonesia</span>
+        </div>
+      </div>
+
+      <!-- Toggles -->
+      <div>
+        <div class="field-label">FITUR AI</div>
+        <div class="toggle-row">
+          <span class="toggle-label">🎙️ Auto Caption (Whisper)</span>
+          <div class="toggle on"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">📱 Smart Vertical Reframe</span>
+          <div class="toggle on"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">🔥 Virality Score</span>
+          <div class="toggle on"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">🎬 B-Roll & Efek</span>
+          <div class="toggle off"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">🔊 Background Music</span>
+          <div class="toggle off"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Token cost -->
+      <div class="token-cost">
+        <div>
+          <div class="token-label">Estimasi token terpakai</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;font-family:var(--mono)">Saldo: 1,240 token</div>
+        </div>
+        <div class="token-val">⚡ ~35 token</div>
+      </div>
+
+      <button class="btn-generate" onclick="showProcessing()">
+        ✦ Generate Klip Sekarang
+      </button>
+    </div>
+
+    <!-- RIGHT: RESULTS / PROCESSING -->
+    <div class="clip-results" id="clipResults">
+
+      <!-- Results Header -->
+      <div class="results-header">
+        <div>
+          <div class="results-title">Hasil Klip — <span style="color:var(--accent-glow)">8 klip ditemukan</span></div>
+          <div class="results-meta">sumber: youtube.com/watch?v=abc123 · durasi: 1:23:45</div>
+        </div>
+        <div class="results-actions">
+          <button class="btn-sm active">Semua</button>
+          <button class="btn-sm">Viral 🔥</button>
+          <button class="btn-sm">Hook</button>
+          <button class="btn-sm">Pilih Semua</button>
+        </div>
+      </div>
+
+      <!-- Clip Card 1 -->
+      <div class="clip-card selected">
+        <div class="clip-card-inner">
+          <div class="clip-thumb">
+            <div class="clip-thumb-ratio">🎤</div>
+            <div class="clip-badge">0:23</div>
+          </div>
+          <div class="clip-info">
+            <div class="clip-title">Momen ini bikin penonton langsung hook di 3 detik pertama</div>
+            <div class="clip-ts">⏱ 00:04:12 → 00:04:35 &nbsp;·&nbsp; Segmen #1</div>
+            <div class="clip-tags">
+              <span class="clip-tag">hook</span>
+              <span class="clip-tag">energi tinggi</span>
+              <span class="clip-tag">face-cam</span>
+              <span class="clip-tag">emotional</span>
+            </div>
+            <div class="score-wrap">
+              <span class="score-label">Virality</span>
+              <div class="score-bar"><div class="score-fill" style="width:92%;background:linear-gradient(90deg,#f43f5e,#f59e0b)"></div></div>
+              <span class="score-val" style="color:#f59e0b">92</span>
+            </div>
+            <div class="clip-caption-preview">"Lo nggak akan pernah sukses kalau lo masih mikirin pendapat orang lain..."</div>
+          </div>
+          <div class="clip-actions">
+            <button class="btn-sm active">✓ Dipilih</button>
+            <button class="btn-sm">✏️ Edit</button>
+            <button class="btn-sm">⬇️ Download</button>
+            <button class="btn-sm">▶ Preview</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clip Card 2 -->
+      <div class="clip-card">
+        <div class="clip-card-inner">
+          <div class="clip-thumb" style="background:linear-gradient(135deg,#0f172a,#1e1b4b)">
+            <div class="clip-thumb-ratio">💡</div>
+            <div class="clip-badge">0:45</div>
+          </div>
+          <div class="clip-info">
+            <div class="clip-title">Tip produktivitas yang 95% orang belum tahu — langsung actionable</div>
+            <div class="clip-ts">⏱ 00:12:08 → 00:12:53 &nbsp;·&nbsp; Segmen #2</div>
+            <div class="clip-tags">
+              <span class="clip-tag">tips</span>
+              <span class="clip-tag">value</span>
+              <span class="clip-tag">actionable</span>
+            </div>
+            <div class="score-wrap">
+              <span class="score-label">Virality</span>
+              <div class="score-bar"><div class="score-fill" style="width:78%;background:linear-gradient(90deg,var(--accent),var(--neon))"></div></div>
+              <span class="score-val" style="color:var(--accent-glow)">78</span>
+            </div>
+            <div class="clip-caption-preview">"Satu kebiasaan kecil ini berhasil bikin gue selesai 3x lebih cepat..."</div>
+          </div>
+          <div class="clip-actions">
+            <button class="btn-sm">+ Pilih</button>
+            <button class="btn-sm">✏️ Edit</button>
+            <button class="btn-sm">⬇️ Download</button>
+            <button class="btn-sm">▶ Preview</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clip Card 3 -->
+      <div class="clip-card">
+        <div class="clip-card-inner">
+          <div class="clip-thumb" style="background:linear-gradient(135deg,#0a1628,#0d2137)">
+            <div class="clip-thumb-ratio">😂</div>
+            <div class="clip-badge">0:31</div>
+          </div>
+          <div class="clip-info">
+            <div class="clip-title">Reaksi spontan yang relatable banget — potensi share rate tinggi</div>
+            <div class="clip-ts">⏱ 00:27:44 → 00:28:15 &nbsp;·&nbsp; Segmen #3</div>
+            <div class="clip-tags">
+              <span class="clip-tag">funny</span>
+              <span class="clip-tag">relatable</span>
+              <span class="clip-tag">authentic</span>
+            </div>
+            <div class="score-wrap">
+              <span class="score-label">Virality</span>
+              <div class="score-bar"><div class="score-fill" style="width:65%;background:linear-gradient(90deg,var(--green),var(--neon))"></div></div>
+              <span class="score-val" style="color:var(--green)">65</span>
+            </div>
+            <div class="clip-caption-preview">"Wait, serius? Ini baru gue tau sekarang?! 😭"</div>
+          </div>
+          <div class="clip-actions">
+            <button class="btn-sm">+ Pilih</button>
+            <button class="btn-sm">✏️ Edit</button>
+            <button class="btn-sm">⬇️ Download</button>
+            <button class="btn-sm">▶ Preview</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Download Bar -->
+      <div style="padding:16px 20px; background:var(--surface); border:1px solid var(--border); border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-size:13px;font-weight:600;">1 klip dipilih</div>
+          <div style="font-size:12px;color:var(--text-muted)">~35 token akan terpakai</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-sm">Pilih Semua (8)</button>
+          <button class="btn-primary" style="padding:10px 20px;font-size:13px">⬇️ Download Klip Terpilih</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROCESSING STATE (hidden by default) -->
+    <div id="processingView" style="display:none;" class="clip-results">
+      <div class="processing-overlay">
+        <div style="font-size:36px;margin-bottom:16px;">⚙️</div>
+        <div style="font-family:var(--sans);font-size:20px;font-weight:700;margin-bottom:6px">Memproses video...</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:32px">Estimasi waktu: <span style="color:var(--neon);font-family:var(--mono)">~2-4 menit</span></div>
+        <div class="progress-steps">
+          <div class="prog-step">
+            <span class="prog-icon">📥</span>
+            <span class="prog-text">Download video dari YouTube</span>
+            <span class="prog-status prog-done">✓ Selesai</span>
+          </div>
+          <div class="prog-step">
+            <span class="prog-icon">🔊</span>
+            <span class="prog-text">Extract audio via FFmpeg</span>
+            <span class="prog-status prog-done">✓ Selesai</span>
+          </div>
+          <div class="prog-step">
+            <span class="prog-icon">🎙️</span>
+            <span class="prog-text">Transkripsi dengan Whisper large-v3</span>
+            <span class="prog-status prog-active">⟳ Berjalan... 67%</span>
+          </div>
+          <div class="prog-step">
+            <span class="prog-icon">🧠</span>
+            <span class="prog-text">Analisis momen viral (Claude / GPT-4o)</span>
+            <span class="prog-status prog-pending">○ Menunggu</span>
+          </div>
+          <div class="prog-step">
+            <span class="prog-icon">👤</span>
+            <span class="prog-text">Face detection tiap segmen (MediaPipe)</span>
+            <span class="prog-status prog-pending">○ Menunggu</span>
+          </div>
+          <div class="prog-step">
+            <span class="prog-icon">📱</span>
+            <span class="prog-text">Render klip 9:16 + reframe</span>
+            <span class="prog-status prog-pending">○ Menunggu</span>
+          </div>
+          <div class="prog-step">
+            <span class="prog-icon">💬</span>
+            <span class="prog-text">Burn captions ke video</span>
+            <span class="prog-status prog-pending">○ Menunggu</span>
+          </div>
+          <div class="prog-step">
+            <span class="prog-icon">🔥</span>
+            <span class="prog-text">Hitung virality score</span>
+            <span class="prog-status prog-pending">○ Menunggu</span>
+          </div>
+        </div>
+        <button class="btn-sm" onclick="document.getElementById('processingView').style.display='none';document.getElementById('clipResults').style.display='flex'">← Kembali ke hasil</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     PAGE 3: DASHBOARD
+══════════════════════════════════ -->
+<div id="page-dashboard" class="page">
+<div class="dashboard-page">
+  <div style="margin-bottom:24px">
+    <div class="section-label">// DASHBOARD</div>
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;letter-spacing:-0.5px">Selamat datang kembali 👋</h2>
+  </div>
+
+  <!-- Stats -->
+  <div class="dashboard-grid">
+    <div class="stat-card">
+      <div class="stat-label">TOKEN TERSISA</div>
+      <div class="stat-val stat-purple">1,240</div>
+      <div class="stat-sub">dari 1,500 bulan ini</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">KLIP DIBUAT</div>
+      <div class="stat-val stat-cyan">84</div>
+      <div class="stat-sub">+12 minggu ini</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">PROJECT AKTIF</div>
+      <div class="stat-val stat-green">6</div>
+      <div class="stat-sub">2 sedang diproses</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">AVG VIRALITY</div>
+      <div class="stat-val stat-yellow">74</div>
+      <div class="stat-sub">↑ +8 dari bulan lalu</div>
+    </div>
+  </div>
+
+  <div class="dash-main">
+    <!-- Projects -->
+    <div class="projects-panel">
+      <div class="panel-header">
+        <div class="panel-header-title">📁 Project Terbaru</div>
+        <button class="btn-sm active" onclick="showPage('clipper')">+ New Project</button>
+      </div>
+      <div class="project-row">
+        <div class="project-thumb">🎤</div>
+        <div>
+          <div class="project-title">Podcast Deddy Corbuzier — EP.#421</div>
+          <div class="project-meta">10 klip · 35 token · yt-dlp → Whisper → Claude</div>
+        </div>
+        <span class="project-status status-done">✓ Selesai</span>
+      </div>
+      <div class="project-row">
+        <div class="project-thumb">💰</div>
+        <div>
+          <div class="project-title">Tips Investasi Saham 2025 — Raditya Dika</div>
+          <div class="project-meta">8 klip · 28 token · sedang render</div>
+        </div>
+        <span class="project-status status-proc">⟳ Proses</span>
+      </div>
+      <div class="project-row">
+        <div class="project-thumb">🏋️</div>
+        <div>
+          <div class="project-title">Workout Rumahan 30 Menit — Coach Rangga</div>
+          <div class="project-meta">6 klip · 22 token · antrian</div>
+        </div>
+        <span class="project-status status-proc">⟳ Antrian</span>
+      </div>
+      <div class="project-row">
+        <div class="project-thumb">🍳</div>
+        <div>
+          <div class="project-title">Resep Rendang Viral 1M Views</div>
+          <div class="project-meta">5 klip · 18 token · selesai kemarin</div>
+        </div>
+        <span class="project-status status-done">✓ Selesai</span>
+      </div>
+      <div class="project-row">
+        <div class="project-thumb">🎮</div>
+        <div>
+          <div class="project-title">Gaming Stream Highlight — Mobile Legends</div>
+          <div class="project-meta">draft · belum diproses</div>
+        </div>
+        <span class="project-status status-draft">Draft</span>
+      </div>
+      <div class="project-row" style="cursor:default">
+        <div class="project-thumb">🎓</div>
+        <div>
+          <div class="project-title">Tutorial Adobe Premiere 3 Jam</div>
+          <div class="project-meta">12 klip · 42 token</div>
+        </div>
+        <span class="project-status status-done">✓ Selesai</span>
+      </div>
+    </div>
+
+    <!-- Side -->
+    <div class="side-panel">
+      <!-- Token Card -->
+      <div class="token-card">
+        <div class="token-card-title">⚡ Token Saldo</div>
+        <div class="token-big">1,240</div>
+        <div class="token-small">token tersisa · reset 15 Juli 2025</div>
+        <div class="token-bar"><div class="token-bar-fill"></div></div>
+        <button class="btn-primary" style="width:100%;padding:10px;font-size:13px">+ Top Up via Midtrans</button>
+      </div>
+
+      <!-- Activity -->
+      <div class="activity-card">
+        <div class="panel-header">
+          <div class="panel-header-title">📋 Aktivitas</div>
+        </div>
+        <div class="activity-item">
+          <span class="activity-icon">✂️</span>
+          <div>
+            <div class="activity-text"><b>10 klip</b> selesai dibuat dari Podcast Deddy #421</div>
+            <div class="activity-time">2 menit lalu</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <span class="activity-icon">⚡</span>
+          <div>
+            <div class="activity-text">Token berkurang <b>35 token</b> untuk project podcast</div>
+            <div class="activity-time">5 menit lalu</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <span class="activity-icon">⬇️</span>
+          <div>
+            <div class="activity-text"><b>3 klip</b> didownload dari project Resep Rendang</div>
+            <div class="activity-time">1 jam lalu</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <span class="activity-icon">💳</span>
+          <div>
+            <div class="activity-text">Top up berhasil <b>500 token</b> via Midtrans · Rp 49K</div>
+            <div class="activity-time">Kemarin</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <span class="activity-icon">🔥</span>
+          <div>
+            <div class="activity-text">Virality score klip Workout: <b>88/100</b> — tertinggi bulan ini!</div>
+            <div class="activity-time">2 hari lalu</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════
+     PAGE 4: ARCHITECTURE
+══════════════════════════════════ -->
+<div id="page-arch" class="page">
+<div class="arch-page">
+  <div style="margin-bottom:28px">
+    <div class="section-label">// TECHNICAL BLUEPRINT</div>
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;letter-spacing:-0.5px">Architecture & Stack</h2>
+    <p style="font-size:14px;color:var(--text-muted);margin-top:4px">Referensi teknis lengkap untuk development ClipAI</p>
+  </div>
+
+  <div class="arch-grid">
+
+    <!-- Stack -->
+    <div class="arch-card">
+      <div class="arch-title">🏗️ Tech Stack</div>
+      <div class="arch-sub">// full-stack overview</div>
+      <div class="stack-item">
+        <span class="stack-role">Frontend</span>
+        <span class="stack-tech">Next.js 14+ (App Router)</span>
+        <span class="stack-note">+ Tailwind CSS</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-role">Backend API</span>
+        <span class="stack-tech">FastAPI (Python)</span>
+        <span class="stack-note">atau Fastify Node.js</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-role">Queue / Workers</span>
+        <span class="stack-tech">BullMQ + Redis</span>
+        <span class="stack-note">antrian proses video</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-role">Storage</span>
+        <span class="stack-tech">Cloudflare R2</span>
+        <span class="stack-note">atau AWS S3</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-role">Database</span>
+        <span class="stack-tech">PostgreSQL</span>
+        <span class="stack-note">+ Prisma ORM</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-role">Auth</span>
+        <span class="stack-tech">NextAuth.js</span>
+        <span class="stack-note">atau Supabase Auth</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-role">Payment</span>
+        <span class="stack-tech">Midtrans</span>
+        <span class="stack-note">pasar Indonesia</span>
+      </div>
+      <div class="stack-item">
+        <span class="stack-role">Deployment</span>
+        <span class="stack-tech">Vercel + Railway</span>
+        <span class="stack-note">atau Render.com</span>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="arch-card">
+      <div class="arch-title">⚙️ Processing Pipeline</div>
+      <div class="arch-sub">// video processing flow</div>
+      <div class="pipe-flow">
+        <div class="pipe-row">
+          <span class="pipe-n">01</span>
+          <span class="pipe-step">Download Video</span>
+          <span class="pipe-tool">yt-dlp --format best</span>
+        </div>
+        <div class="pipe-row">
+          <span class="pipe-n">02</span>
+          <span class="pipe-step">Extract Audio</span>
+          <span class="pipe-tool">ffmpeg -vn -acodec pcm</span>
+        </div>
+        <div class="pipe-row">
+          <span class="pipe-n">03</span>
+          <span class="pipe-step">Transkripsi</span>
+          <span class="pipe-tool">whisper large-v3 --lang id</span>
+        </div>
+        <div class="pipe-row">
+          <span class="pipe-n">04</span>
+          <span class="pipe-step">Analisis Viral</span>
+          <span class="pipe-tool">Claude API / GPT-4o</span>
+        </div>
+        <div class="pipe-row">
+          <span class="pipe-n">05</span>
+          <span class="pipe-step">Face Detection</span>
+          <span class="pipe-tool">mediapipe.solutions.face</span>
+        </div>
+        <div class="pipe-row">
+          <span class="pipe-n">06</span>
+          <span class="pipe-step">Render 9:16</span>
+          <span class="pipe-tool">ffmpeg -vf crop+scale</span>
+        </div>
+        <div class="pipe-row">
+          <span class="pipe-n">07</span>
+          <span class="pipe-step">Burn Captions</span>
+          <span class="pipe-tool">ffmpeg -vf subtitles=</span>
+        </div>
+        <div class="pipe-row">
+          <span class="pipe-n">08</span>
+          <span class="pipe-step">Virality Score</span>
+          <span class="pipe-tool">custom_scorer.predict()</span>
+        </div>
+        <div class="pipe-row">
+          <span class="pipe-n">09</span>
+          <span class="pipe-step">Upload ke Storage</span>
+          <span class="pipe-tool">r2.put_object(key, data)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENV Variables -->
+    <div class="arch-card arch-card-full">
+      <div class="arch-title">🔑 Environment Variables</div>
+      <div class="arch-sub">// .env template lengkap</div>
+      <div class="code-block">
+<span class="code-comment"># ── AI APIs ──────────────────────────────</span>
+<span class="code-key">OPENAI_API_KEY</span>=<span class="code-str">sk-proj-...</span>                   <span class="code-comment"># GPT-4o untuk analisis viral</span>
+<span class="code-key">ANTHROPIC_API_KEY</span>=<span class="code-str">sk-ant-...</span>                <span class="code-comment"># Claude 3.5 Sonnet (alternatif)</span>
+<span class="code-key">WHISPER_MODEL</span>=<span class="code-str">large-v3</span>                       <span class="code-comment"># atau medium untuk hemat vRAM</span>
+
+<span class="code-comment"># ── Database ─────────────────────────────</span>
+<span class="code-key">DATABASE_URL</span>=<span class="code-str">postgresql://user:pass@host/clipai</span>
+<span class="code-key">REDIS_URL</span>=<span class="code-str">redis://localhost:6379</span>
+
+<span class="code-comment"># ── Storage ──────────────────────────────</span>
+<span class="code-key">R2_ACCOUNT_ID</span>=<span class="code-str">abc123...</span>
+<span class="code-key">R2_ACCESS_KEY_ID</span>=<span class="code-str">xxx</span>
+<span class="code-key">R2_SECRET_ACCESS_KEY</span>=<span class="code-str">xxx</span>
+<span class="code-key">R2_BUCKET_NAME</span>=<span class="code-str">clipai-videos</span>
+<span class="code-key">R2_PUBLIC_URL</span>=<span class="code-str">https://clipai.r2.dev</span>
+
+<span class="code-comment"># ── Auth ─────────────────────────────────</span>
+<span class="code-key">NEXTAUTH_URL</span>=<span class="code-str">http://localhost:3000</span>
+<span class="code-key">NEXTAUTH_SECRET</span>=<span class="code-str">random-secret-here</span>
+<span class="code-key">GOOGLE_CLIENT_ID</span>=<span class="code-str">xxx.apps.googleusercontent.com</span>
+<span class="code-key">GOOGLE_CLIENT_SECRET</span>=<span class="code-str">xxx</span>
+
+<span class="code-comment"># ── Payment (Midtrans) ───────────────────</span>
+<span class="code-key">MIDTRANS_SERVER_KEY</span>=<span class="code-str">SB-Mid-server-xxx</span>
+<span class="code-key">MIDTRANS_CLIENT_KEY</span>=<span class="code-str">SB-Mid-client-xxx</span>
+<span class="code-key">MIDTRANS_IS_PRODUCTION</span>=<span class="code-str">false</span>
+
+<span class="code-comment"># ── App Config ───────────────────────────</span>
+<span class="code-key">FREE_TIER_CLIPS_PER_DAY</span>=<span class="code-str">3</span>
+<span class="code-key">TOKEN_COST_PER_CLIP</span>=<span class="code-str">5</span>
+<span class="code-key">MAX_VIDEO_DURATION_MINUTES</span>=<span class="code-str">180</span>
+      </div>
+    </div>
+
+    <!-- Folder Structure -->
+    <div class="arch-card">
+      <div class="arch-title">📁 Struktur Folder</div>
+      <div class="arch-sub">// Next.js App Router</div>
+      <div class="code-block" style="font-size:11px;line-height:2">
+<span class="code-comment">clipai/</span>
+<span class="code-key">├── app/</span>                           <span class="code-comment"># Next.js App Router</span>
+<span class="code-fn">│   ├── (auth)/login/</span>
+<span class="code-fn">│   ├── dashboard/</span>
+<span class="code-fn">│   ├── clipper/</span>
+<span class="code-fn">│   ├── editor/[clipId]/</span>
+<span class="code-fn">│   ├── pricing/</span>
+<span class="code-fn">│   └── api/</span>
+<span class="code-fn">│       ├── clips/generate/</span>
+<span class="code-fn">│       ├── clips/[id]/download/</span>
+<span class="code-fn">│       └── payment/midtrans/</span>
+<span class="code-key">├── backend/</span>                        <span class="code-comment"># Python FastAPI</span>
+<span class="code-fn">│   ├── workers/</span>
+<span class="code-fn">│   │   ├── downloader.py</span>           <span class="code-comment"># yt-dlp</span>
+<span class="code-fn">│   │   ├── transcriber.py</span>          <span class="code-comment"># Whisper</span>
+<span class="code-fn">│   │   ├── analyzer.py</span>             <span class="code-comment"># Claude/GPT-4o</span>
+<span class="code-fn">│   │   ├── face_tracker.py</span>         <span class="code-comment"># MediaPipe</span>
+<span class="code-fn">│   │   ├── renderer.py</span>             <span class="code-comment"># FFmpeg</span>
+<span class="code-fn">│   │   └── scorer.py</span>               <span class="code-comment"># Virality model</span>
+<span class="code-fn">│   └── queue.py</span>                    <span class="code-comment"># BullMQ / Redis</span>
+<span class="code-key">├── prisma/schema.prisma</span>
+<span class="code-key">└── docker-compose.yml</span>
+      </div>
+    </div>
+
+    <!-- DB Schema -->
+    <div class="arch-card">
+      <div class="arch-title">🗄️ Database Schema</div>
+      <div class="arch-sub">// PostgreSQL + Prisma</div>
+      <div class="code-block" style="font-size:11px;line-height:1.9">
+<span class="code-key">model</span> <span class="code-fn">User</span> {
+  id          <span class="code-val">String</span>    <span class="code-str">@id @default(cuid())</span>
+  email       <span class="code-val">String</span>    <span class="code-str">@unique</span>
+  tokenBalance <span class="code-val">Int</span>      <span class="code-str">@default(15)</span>
+  plan        <span class="code-val">Plan</span>      <span class="code-str">@default(FREE)</span>
+  projects    <span class="code-fn">Project[]</span>
+}
+
+<span class="code-key">model</span> <span class="code-fn">Project</span> {
+  id          <span class="code-val">String</span>    <span class="code-str">@id @default(cuid())</span>
+  youtubeUrl  <span class="code-val">String</span>
+  status      <span class="code-val">Status</span>    <span class="code-comment">// QUEUED|PROCESSING|DONE|FAILED</span>
+  clips       <span class="code-fn">Clip[]</span>
+  userId      <span class="code-val">String</span>
+}
+
+<span class="code-key">model</span> <span class="code-fn">Clip</span> {
+  id           <span class="code-val">String</span>
+  startSec     <span class="code-val">Float</span>
+  endSec       <span class="code-val">Float</span>
+  viralityScore <span class="code-val">Int</span>
+  storageUrl   <span class="code-val">String</span>
+  transcript   <span class="code-val">String</span>
+  tags         <span class="code-val">String[]</span>
+}
+      </div>
+    </div>
+
+    <!-- Midtrans Flow -->
+    <div class="arch-card arch-card-full">
+      <div class="arch-title">💳 Payment Flow — Midtrans Token Top-Up</div>
+      <div class="arch-sub">// sequence diagram</div>
+      <div class="code-block" style="font-size:12px;line-height:2">
+<span class="code-comment">User klik "Top Up 500 Token - Rp 49K"</span>
+       ↓
+<span class="code-fn">POST /api/payment/create-transaction</span>
+  → Buat Midtrans Snap transaction (<span class="code-val">order_id</span>, <span class="code-val">amount</span>, <span class="code-val">metadata: {userId, tokenAmount}</span>)
+  ← Return <span class="code-str">snap_token</span>
+       ↓
+<span class="code-comment">Frontend buka Midtrans Snap popup</span>
+  → User bayar via QRIS / Transfer / VA / GoPay / OVO
+       ↓
+<span class="code-fn">POST /api/payment/webhook  </span><span class="code-comment">(Midtrans callback)</span>
+  → Verifikasi signature key
+  → Jika <span class="code-str">transaction_status == 'settlement'</span>:
+      → <span class="code-fn">db.user.update</span>({ tokenBalance: { increment: tokenAmount } })
+      → Kirim notif ke user
+       ↓
+<span class="code-comment">Token otomatis masuk, user bisa langsung generate klip</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    const tabs = document.querySelectorAll('.nav-tab');
+    const map = { landing:0, clipper:1, dashboard:2, arch:3 };
+    tabs[map[id]].classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Toggle interactivity
+  document.querySelectorAll('.toggle').forEach(t => {
+    t.addEventListener('click', () => {
+      t.classList.toggle('on');
+      t.classList.toggle('off');
+    });
+  });
+
+  // Clip card selection
+  document.querySelectorAll('.clip-card').forEach(card => {
+    const selectBtn = card.querySelector('.btn-sm');
+    if (selectBtn) {
+      selectBtn.addEventListener('click', () => {
+        card.classList.toggle('selected');
+        if (card.classList.contains('selected')) {
+          selectBtn.textContent = '✓ Dipilih';
+          selectBtn.classList.add('active');
+        } else {
+          selectBtn.textContent = '+ Pilih';
+          selectBtn.classList.remove('active');
+        }
+      });
+    }
+  });
+</script>
+</body>
+</html>
+<script>
+// Override showProcessing dengan API call beneran
+async function showProcessing() {
+  const url = document.getElementById('clipperUrl').value;
+  if (!url) { alert('Masukkan URL YouTube dulu!'); return; }
+  
+  document.getElementById('clipResults').style.display = 'none';
+  document.getElementById('processingView').style.display = 'block';
+
+  try {
+    const response = await fetch('/api/clips/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        youtubeUrl: url, 
+        userId: 'demo-user-001' 
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      console.log('✅ Job created:', data);
+      alert('Job berhasil dibuat! Project ID: ' + data.projectId);
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (err) {
+    console.error('API Error:', err);
+    alert('Gagal konek ke server. Pastikan Next.js jalan.');
+  }
+}
+</script>
+</body>
+</html>

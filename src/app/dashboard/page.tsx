@@ -341,7 +341,7 @@ export default function DashboardPage() {
               {projects.slice(0, 10).map((project) => (
                 <Link
                   key={project.id}
-                  href={`/clipper?project=${project.id}`}
+                  href={`/dashboard/proyek/${project.id}`}
                   className="block rounded-xl border border-zinc-800 bg-zinc-900/40 p-4
                     hover:border-zinc-700 hover:bg-zinc-900 transition-all group"
                 >

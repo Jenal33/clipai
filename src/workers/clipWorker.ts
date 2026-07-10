@@ -1,6 +1,5 @@
 import * as dotenv from 'dotenv'
-import * as path from 'path'
-dotenv.config({ path: path.resolve('/home/je3393/clipai/.env.local'), override: true })
+dotenv.config({ override: true })
 
 // Verify env loaded
 console.log('DB URL loaded:', !!process.env.DATABASE_URL)

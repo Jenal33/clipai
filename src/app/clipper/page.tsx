@@ -26,6 +26,7 @@ const qualityWarnings: Record<string, { title: string; body: string }> = {
 
 export default function ClipperPage() {
   const { data: session } = useSession()
+  const userPlan = (session?.user as any)?.plan || 'FREE'
   const [url, setUrl] = useState('')
   const [clipCount, setClipCount] = useState(5)
   const [loading, setLoading] = useState(false)
@@ -48,6 +49,14 @@ export default function ClipperPage() {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  // Force reset untuk user FREE — kunci ke 3 klip & 720p
+  useEffect(() => {
+    if (userPlan === 'FREE') {
+      if (clipCount > 3) setClipCount(3)
+      if (quality !== '720p') setQuality('720p')
+    }
+  }, [userPlan, clipCount, quality])
 
   const handleGenerate = async () => {
     if (!url) return alert("Masukin link YouTube dulu, Bos!")
@@ -162,27 +171,34 @@ export default function ClipperPage() {
               Pilih Target Klip & Durasi:
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {clipSettings.map((setting) => (
+              {clipSettings.map((setting) => {
+                const isLocked = userPlan === 'FREE' && setting.count > 3
+                return (
                 <div
                   key={setting.count}
-                  onClick={() => setClipCount(setting.count)}
+                  onClick={() => !isLocked && setClipCount(setting.count)}
                   className={`cursor-pointer p-4 rounded-xl backdrop-blur-md border transition-all duration-300 ${
                     clipCount === setting.count
                       ? 'bg-purple-600/40 border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
-                      : 'bg-white/5 border-white/10 hover:bg-white/10'
+                      : isLocked
+                        ? 'bg-white/5 border-white/10 opacity-50'
+                        : 'bg-white/5 border-white/10 hover:bg-white/10'
                   }`}
                 >
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-2xl font-bold text-white">
-                      {setting.count} <span className="text-sm font-normal text-gray-300">Klip</span>
+                      {isLocked ? '🔒 ' : ''}{setting.count} <span className="text-sm font-normal text-gray-300">Klip</span>
                     </span>
                     <span className="text-sm font-medium text-purple-200 bg-purple-900/50 px-2 py-1 rounded-md">
                       {setting.duration}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-2">{setting.target}</p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {isLocked ? '🔒 Khusus PRO' : setting.target}
+                  </p>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
@@ -220,31 +236,37 @@ export default function ClipperPage() {
               {/* Dropdown menu */}
               {qualityOpen && (
                 <div className="absolute z-20 mt-2 w-full rounded-xl bg-zinc-900/95 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                  {qualityOptions.map((opt) => (
+                  {qualityOptions.map((opt) => {
+                    const isLocked = userPlan === 'FREE' && opt.value !== '720p'
+                    return (
                     <button
                       key={opt.value}
                       type="button"
                       onClick={() => {
+                        if (isLocked) return
                         setQuality(opt.value)
                         setQualityOpen(false)
                       }}
                       className={`w-full flex items-center gap-3 p-4 text-left transition-all duration-200 ${
                         quality === opt.value
                           ? 'bg-purple-600/30 border-l-2 border-purple-400'
-                          : 'hover:bg-white/5 border-l-2 border-transparent'
+                          : isLocked
+                            ? 'hover:bg-white/5 border-l-2 border-transparent opacity-50 cursor-not-allowed'
+                            : 'hover:bg-white/5 border-l-2 border-transparent'
                       }`}
                     >
-                      <span className="text-lg">{opt.icon}</span>
+                      <span className="text-lg">{isLocked ? '🔒' : opt.icon}</span>
                       <div>
                         <span className={`font-semibold ${
-                          quality === opt.value ? 'text-purple-300' : 'text-white'
+                          quality === opt.value ? 'text-purple-300' : isLocked ? 'text-gray-500' : 'text-white'
                         }`}>
-                          {opt.label}
+                          {isLocked ? `${opt.label} (Khusus PRO)` : opt.label}
                         </span>
-                        <p className="text-xs text-gray-400">{opt.subtitle}</p>
+                        <p className="text-xs text-gray-400">{isLocked ? '🔒 Upgrade ke PRO untuk akses' : opt.subtitle}</p>
                       </div>
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -263,7 +285,15 @@ export default function ClipperPage() {
           </div>
 
           {/* Tombol Generate */}
-          <button
+       
+{/* Kalkulator Estimasi Biaya */}
+    <div className="mb-4 p-3 bg-gray-800/50 rounded-lg text-center border border-gray-700">
+      <p className="text-sm text-gray-300">
+        Estimasi biaya: <span className="text-purple-400 font-bold">{ (quality === '720p' ? 5 : quality === '1080p' ? 8 : 15) * clipCount } Token</span>
+      </p>
+    </div>
+
+           <button
             onClick={handleGenerate}
             disabled={loading || !url}
             className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold hover:scale-[1.02] transition-transform shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"

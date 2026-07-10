@@ -1,306 +1,174 @@
-'use client'
+"use client";
 
-import { useSession, signIn } from 'next-auth/react'
-import { useState } from 'react'
-
-const PLANS = [
-  {
-    id: 'pro',
-    name: 'PRO',
-    price: 'Rp 35.000',
-    tokens: '100 token',
-    desc: 'Untuk kreator konten',
-    features: [
-      '100 token (≈33× generate)',
-      '5 klip per video',
-      'Skor virality AI',
-      'Format portrait 9:16',
-      'Upload ke Cloudflare R2',
-    ],
-    popular: true,
-  },
-  {
-    id: 'enterprise',
-    name: 'ENTERPRISE',
-    price: 'Rp 150.000',
-    tokens: 'Unlimited',
-    desc: 'Untuk bisnis & power user',
-    features: [
-      'Unlimited token',
-      'Unlimited video',
-      '5 klip per video',
-      'Skor virality AI',
-      'Format portrait 9:16',
-      'Upload ke Cloudflare R2',
-    ],
-    popular: false,
-  },
-]
-
-const TRIPAY_METHODS = [
-  { code: 'QRIS', name: 'QRIS (All QR)', icon: '📱' },
-  { code: 'GOPAY', name: 'GoPay', icon: '💳' },
-  { code: 'SHOPEEPAY', name: 'ShopeePay', icon: '🛒' },
-  { code: 'BCA', name: 'BCA Virtual Account', icon: '🏦' },
-  { code: 'BNI', name: 'BNI Virtual Account', icon: '🏦' },
-  { code: 'BRI', name: 'BRI Virtual Account', icon: '🏦' },
-  { code: 'MANDIRI', name: 'Mandiri Bill Payment', icon: '🏦' },
-  { code: 'ALFAMART', name: 'Alfamart', icon: '🏪' },
-  { code: 'INDOMARET', name: 'Indomaret', icon: '🏪' },
-]
+import { useState } from "react";
 
 export default function PricingPage() {
-  const { data: session } = useSession()
-  const [loading, setLoading] = useState<string | null>(null)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // State untuk Tripay
-  const [showMethodPicker, setShowMethodPicker] = useState<string | null>(null) // plan id
-  const [paymentInfo, setPaymentInfo] = useState<{
-    planId: string
-    payCode?: string
-    payUrl?: string
-    checkoutUrl?: string
-    method: string
-    totalAmount: number
-  } | null>(null)
-
-  // ── Midtrans Flow ──
-  const handleMidtransBuy = async (plan: string) => {
-    setPaymentInfo(null)
-    setShowMethodPicker(null)
-    setLoading(plan)
-    setError('')
-    setSuccess('')
-    try {
-      const res = await fetch('/api/payments/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Gagal')
-
-      if (typeof window !== 'undefined' && (window as any).snap) {
-        ;(window as any).snap.pay(data.snapToken, {
-          onSuccess: async () => {
-            try {
-              const confirmRes = await fetch('/api/payments/confirm', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ plan, orderId: data.orderId }),
-              })
-              const confirmData = await confirmRes.json()
-              if (confirmRes.ok) {
-                setSuccess(confirmData.message)
-              } else {
-                setError(confirmData.error || 'Gagal konfirmasi')
-              }
-            } catch (e) {
-              setError('Gagal konfirmasi pembayaran. Hubungi admin.')
-            }
-            setLoading(null)
-          },
-          onPending: () => { setSuccess('⏳ Pembayaran pending. Token akan ditambah otomatis.'); setLoading(null) },
-          onError: () => { setError('❌ Pembayaran gagal. Coba lagi.'); setLoading(null) },
-          onClose: () => { setLoading(null) },
-        })
-      } else {
-        window.location.href = data.redirectUrl
-      }
-    } catch (e) {
-      setError(String(e))
-      setLoading(null)
-    }
-  }
-
-  // ── Tripay Flow ──
-  const handleShowMethods = (plan: string) => {
-    setPaymentInfo(null)
-    setError('')
-    setSuccess('')
-    setShowMethodPicker(showMethodPicker === plan ? null : plan)
-  }
-
-  const handleTripayPay = async (plan: string, method: string) => {
-    setLoading(`${plan}-${method}`)
-    setError('')
-    setSuccess('')
-    try {
-      const res = await fetch('/api/payments/tripay/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, method }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Gagal')
-
-      setPaymentInfo({
-        planId: plan,
-        payCode: data.payCode,
-        payUrl: data.payUrl,
-        checkoutUrl: data.checkoutUrl,
-        method,
-        totalAmount: data.totalAmount,
-      })
-
-      setShowMethodPicker(null)
-      setLoading(null)
-
-      // Auto redirect ke checkout URL (QRIS/e-wallet)
-      if (data.checkoutUrl) {
-        window.open(data.checkoutUrl, '_blank')
-      }
-    } catch (e) {
-      setError(String(e))
-      setLoading(null)
-    }
-  }
-
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text)
-    setSuccess('✅ Tersalin!')
-    setTimeout(() => setSuccess(''), 2000)
-  }
+  // FUNGSI UNTUK MENANGANI KLIK TOMBOL BELI
+  const handleCheckout = (planId: string, method: string) => {
+    // TODO: Ganti alert ini dengan fungsi pemanggilan API Midtrans / Tripay lo
+    alert(`Lanjut pembayaran paket: ${planId} via ${method}. \n\n(Bang Jenal, taruh logika fetch ke /api/payments di sini ya!)`);
+  };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white py-24 px-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold mb-4">Pilih Paket</h1>
-          <p className="text-zinc-400 max-w-lg mx-auto">
-            {session
-              ? `Pilih paket & metode bayar — Midtrans (kartu/QRIS) atau Tripay (VA/Alfamart/QRIS)`
-              : 'Login dulu buat beli paket.'}
-          </p>
+    <div className="min-h-screen bg-[#0F0F13] text-white py-12 px-4 font-sans">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-3xl font-bold mb-4">Pilih Paket ClipAI</h1>
+          <p className="text-gray-400">Pilih paket yang sesuai dengan kebutuhan konten lo</p>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-8 max-w-3xl mx-auto">
-          {PLANS.map((plan) => (
-            <div
-              key={plan.id}
-              className={`rounded-2xl p-8 border relative ${
-                plan.popular
-                  ? 'bg-purple-900/30 border-purple-600'
-                  : 'bg-zinc-900 border-zinc-800'
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-xs px-4 py-1 rounded-full font-semibold">
-                  TERLARIS
-                </div>
-              )}
-              <h2 className="text-2xl font-bold mb-1">{plan.name}</h2>
-              <p className="text-zinc-400 text-sm mb-1">{plan.desc}</p>
-              <p className="text-4xl font-bold mb-2">{plan.price}</p>
-              <p className="text-sm text-zinc-500 mb-8">{plan.tokens}</p>
-
-              <ul className="space-y-3 mb-10">
-                {plan.features.map((f, i) => (
-                  <li key={i} className="text-sm text-zinc-300">✅ {f}</li>
-                ))}
-              </ul>
-
-              {/* Tombol Midtrans */}
-              <button
-                onClick={() => session ? handleMidtransBuy(plan.id) : signIn('google')}
-                disabled={loading === plan.id}
-                className={`w-full py-3 rounded-xl font-semibold transition mb-3 ${
-                  plan.popular
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                    : 'bg-zinc-800 hover:bg-zinc-700 text-white'
-                } disabled:opacity-50`}
-              >
-                {loading === plan.id ? 'Memproses...' : session ? `Beli ${plan.name} (Midtrans)` : 'Login untuk Beli'}
-              </button>
-
-              {/* Tombol Tripay */}
-              {session && (
-                <button
-                  onClick={() => handleShowMethods(plan.id)}
-                  className={`w-full py-3 rounded-xl font-semibold transition border ${
-                    showMethodPicker === plan.id
-                      ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
-                      : 'bg-zinc-800/50 border-zinc-700 text-zinc-300 hover:border-zinc-500'
-                  }`}
-                >
-                  💳 Bayar via Tripay
-                </button>
-              )}
-
-              {/* Picker metode Tripay */}
-              {showMethodPicker === plan.id && (
-                <div className="mt-4 space-y-2">
-                  <p className="text-xs text-zinc-400 mb-2">Pilih metode:</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {TRIPAY_METHODS.map((m) => (
-                      <button
-                        key={m.code}
-                        onClick={() => handleTripayPay(plan.id, m.code)}
-                        disabled={loading === `${plan.id}-${m.code}`}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-left disabled:opacity-50 transition"
-                      >
-                        <span>{m.icon}</span>
-                        <span className="truncate">{m.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Tampilkan info pembayaran Tripay — sesuai plan */}
-              {paymentInfo && paymentInfo.planId === plan.id && (
-                <div className="mt-4 p-4 rounded-xl bg-zinc-800/80 border border-emerald-600/30 space-y-3">
-                  <p className="text-sm font-semibold text-emerald-400">💳 Menunggu Pembayaran</p>
-                  <p className="text-xs text-zinc-400">Metode: {paymentInfo.method}</p>
-                  <p className="text-xl font-bold">Rp {paymentInfo.totalAmount.toLocaleString('id-ID')}</p>
-
-                  {paymentInfo.payCode && (
-                    <div className="bg-zinc-900 rounded-lg p-3">
-                      <p className="text-xs text-zinc-400 mb-1">Kode Pembayaran:</p>
-                      <div className="flex items-center justify-between">
-                        <code className="text-lg font-mono text-white tracking-widest">{paymentInfo.payCode}</code>
-                        <button
-                          onClick={() => handleCopy(paymentInfo.payCode!)}
-                          className="text-xs text-emerald-400 hover:text-emerald-300 ml-2 shrink-0"
-                        >
-                          Salin
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {paymentInfo.checkoutUrl && (
-                    <a
-                      href={paymentInfo.checkoutUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-center text-sm font-semibold transition"
-                    >
-                      🔗 Bayar Sekarang
-                    </a>
-                  )}
-
-                  <p className="text-xs text-zinc-500">
-                    Status otomatis terupdate setelah pembayaran dikonfirmasi Tripay.
-                  </p>
-                </div>
-              )}
+        {/* BUNGKUSAN KARTU HARGA */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          
+          {/* TIER 0: GRATIS */}
+          <div className="bg-[#1A1A24] rounded-2xl p-6 border border-gray-800 flex flex-col">
+            <h2 className="text-2xl font-bold mb-1">GRATIS</h2>
+            <p className="text-gray-400 text-sm mb-4">Uji coba kehebatan ClipAI</p>
+            <div className="text-4xl font-bold mb-2">Rp 0</div>
+            <p className="text-gray-400 text-sm mb-6">15 token</p>
+            
+            <ul className="space-y-3 mb-8 flex-grow">
+              <li className="flex gap-2">✅ <span>15 token gratis (Untuk 3x generate 720p)</span></li>
+              <li className="flex gap-2">✅ <span>Maksimal 3 klip per generate</span></li>
+              <li className="flex gap-2">✅ <span>Kualitas terkunci di 720p</span></li>
+              <li className="flex gap-2 text-gray-500">❌ <span>Skor virality AI</span></li>
+              <li className="flex gap-2 text-gray-500">❌ <span>Upload ke Cloudflare R2</span></li>
+            </ul>
+            
+            <div className="space-y-3 mt-auto">
+              <button className="w-full bg-[#2A2A35] text-gray-300 cursor-not-allowed py-3 rounded-xl font-bold">Plan Saat Ini</button>
             </div>
-          ))}
+          </div>
+
+          {/* TIER 1: PRO */}
+          <div className="bg-[#1A1A24] rounded-2xl p-6 border border-gray-800 flex flex-col">
+            <h2 className="text-2xl font-bold mb-1">PRO</h2>
+            <p className="text-gray-400 text-sm mb-4">Untuk kreator konten pemula</p>
+            <div className="text-4xl font-bold mb-2">Rp 35.000</div>
+            <p className="text-gray-400 text-sm mb-6">100 token</p>
+            
+            <ul className="space-y-3 mb-8 flex-grow">
+              <li className="flex gap-2">✅ <span>100 token (Bisa untuk ±20 klip 720p)</span></li>
+              <li className="flex gap-2">✅ <span>Maksimal 10 klip per generate</span></li>
+              <li className="flex gap-2">✅ <span>Skor virality AI</span></li>
+              <li className="flex gap-2">✅ <span>Format portrait 9:16</span></li>
+              <li className="flex gap-2">✅ <span>Upload ke Cloudflare R2</span></li>
+            </ul>
+            
+            <div className="space-y-3 mt-auto">
+              <button onClick={() => handleCheckout('PRO', 'Midtrans')} className="w-full bg-[#8A2BE2] hover:bg-[#7A1BD2] text-white py-3 rounded-xl font-bold transition">Beli PRO</button>
+              <button onClick={() => handleCheckout('PRO', 'Tripay')} className="w-full bg-[#2A2A35] hover:bg-[#3A3A45] text-white py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">💳 Bayar via Tripay</button>
+            </div>
+          </div>
+
+          {/* TIER 2: PRO PLUS (TERLARIS) */}
+          <div className="bg-[#1A1A24] rounded-2xl p-6 border-2 border-[#8A2BE2] relative transform md:-translate-y-4 shadow-[0_0_30px_rgba(138,43,226,0.15)] flex flex-col">
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#8A2BE2] text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider">
+              TERLARIS
+            </div>
+            <h2 className="text-2xl font-bold mb-1">PRO PLUS</h2>
+            <p className="text-gray-400 text-sm mb-4">Lebih hemat 50% per token</p>
+            <div className="text-4xl font-bold mb-2">Rp 75.000</div>
+            <p className="text-gray-400 text-sm mb-6">500 token</p>
+            
+            <ul className="space-y-3 mb-8 flex-grow">
+              <li className="flex gap-2">✅ <span>500 token (Bisa untuk ±100 klip 720p)</span></li>
+              <li className="flex gap-2">✅ <span>Maksimal 15 klip per generate</span></li>
+              <li className="flex gap-2">✅ <span>Skor virality AI</span></li>
+              <li className="flex gap-2">✅ <span>Format portrait 9:16</span></li>
+              <li className="flex gap-2">✅ <span>Upload ke Cloudflare R2</span></li>
+            </ul>
+            
+            <div className="space-y-3 mt-auto">
+              <button onClick={() => handleCheckout('PRO_PLUS', 'Midtrans')} className="w-full bg-[#8A2BE2] hover:bg-[#7A1BD2] text-white py-3 rounded-xl font-bold transition">Beli PRO PLUS</button>
+              <button onClick={() => handleCheckout('PRO_PLUS', 'Tripay')} className="w-full bg-[#2A2A35] hover:bg-[#3A3A45] text-white py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">💳 Bayar via Tripay</button>
+            </div>
+          </div>
+
+          {/* TIER 3: ENTERPRISE */}
+          <div className="bg-[#1A1A24] rounded-2xl p-6 border border-gray-800 flex flex-col">
+            <h2 className="text-2xl font-bold mb-1">ENTERPRISE</h2>
+            <p className="text-gray-400 text-sm mb-4">Untuk bisnis & power user</p>
+            <div className="text-4xl font-bold mb-2">Rp 150.000</div>
+            <p className="text-gray-400 text-sm mb-6">Unlimited</p>
+            
+            <ul className="space-y-3 mb-8 flex-grow">
+              <li className="flex gap-2">✅ <span>Unlimited token</span></li>
+              <li className="flex gap-2">✅ <span>Unlimited video generation</span></li>
+              <li className="flex gap-2">✅ <span>Maksimal 20 klip per generate</span></li>
+              <li className="flex gap-2">✅ <span>Skor virality AI</span></li>
+              <li className="flex gap-2">✅ <span>Format portrait 9:16</span></li>
+              <li className="flex gap-2">✅ <span>Upload ke Cloudflare R2</span></li>
+            </ul>
+            
+            <div className="space-y-3 mt-auto">
+              <button onClick={() => handleCheckout('ENTERPRISE', 'Midtrans')} className="w-full bg-transparent border border-[#8A2BE2] text-[#8A2BE2] hover:bg-[#8A2BE2] hover:text-white py-3 rounded-xl font-bold transition">Beli ENTERPRISE</button>
+              <button onClick={() => handleCheckout('ENTERPRISE', 'Tripay')} className="w-full bg-[#2A2A35] hover:bg-[#3A3A45] text-white py-3 rounded-xl font-bold transition flex items-center justify-center gap-2">💳 Bayar via Tripay</button>
+            </div>
+          </div>
+
         </div>
 
-        {error && <div className="mt-8 text-center text-red-400">{error}</div>}
-        {success && <div className="mt-8 text-center text-green-400">{success}</div>}
+        {/* TOMBOL MODAL TRANSPARANSI */}
+        <div className="mt-12 text-center">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="text-gray-400 hover:text-white underline decoration-dashed underline-offset-4 flex items-center justify-center gap-2 mx-auto transition"
+          >
+            💡 Cara Kerja Token & Garansi
+          </button>
+        </div>
+
       </div>
 
-      {/* Midtrans Snap JS — tetap untuk flow Midtrans */}
-      <script
-        src={process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL || 'https://app.sandbox.midtrans.com/snap/snap.js'}
-        data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || ''}
-        async
-      />
+      {/* MODAL POP-UP (UDAH DI-STYLE OUTLINE UNGU) */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          {/* DIV DI BAWAH INI YANG DIUBAH BORDER DAN SHADOW-NYA */}
+          <div className="bg-[#1A1A24] rounded-2xl p-6 md:p-8 max-w-2xl w-full border-2 border-[#8A2BE2] shadow-[0_0_40px_rgba(138,43,226,0.3)] relative my-8">
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl"
+            >
+              &times;
+            </button>
+            
+            <h3 className="text-2xl font-bold mb-6 border-b border-gray-700 pb-4">Detail Benefit & Sistem Token</h3>
+            
+            <div className="space-y-6 text-gray-300">
+              <div>
+                <h4 className="text-lg font-bold text-white flex items-center gap-2 mb-2">🛡 Garansi Token Kembali 100%</h4>
+                <p className="text-sm leading-relaxed">Sistem AI kami punya fitur auto-refund. Jika proses generate klip gagal, error, atau terputus karena kendala server, token kamu tidak akan hangus dan langsung dikembalikan secara otomatis. Lo cuma bayar untuk hasil yang sukses!</p>
+              </div>
+
+              <div>
+                <h4 className="text-lg font-bold text-white flex items-center gap-2 mb-2">⚙️ Simulasi Transparan (Pay for What You Use)</h4>
+                <p className="text-sm leading-relaxed mb-3">Biaya generate dihitung berdasarkan beban server untuk memproses resolusi video. Semakin kecil resolusi, semakin hemat token kamu. Estimasi biaya per 1 klip:</p>
+                <ul className="text-sm space-y-2 bg-[#0F0F13] p-4 rounded-xl border border-gray-800">
+                  <li className="flex justify-between border-b border-gray-800 pb-2"><span>720p (Hemat & Cepat)</span> <span className="font-bold text-[#8A2BE2]">5 Token</span></li>
+                  <li className="flex justify-between border-b border-gray-800 pb-2"><span>1080p (Kualitas Tinggi)</span> <span className="font-bold text-[#8A2BE2]">8 Token</span></li>
+                  <li className="flex justify-between"><span>4K (Ultra HD)</span> <span className="font-bold text-[#8A2BE2]">15 Token</span></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-lg font-bold text-white flex items-center gap-2 mb-2">💎 Benefit PRO Maksimal</h4>
+                <p className="text-sm leading-relaxed">Langganan bulanan memastikan kamu selalu punya akses prioritas untuk upload hasil klip langsung ke Cloudflare R2 storage super cepat, fitur Skor Virality AI untuk analisis konten, dan format auto-portrait 9:16 yang dioptimasi untuk TikTok/Reels.</p>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="w-full mt-8 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-bold transition"
+            >
+              Tutup Penjelasan
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
-  )
+  );
 }

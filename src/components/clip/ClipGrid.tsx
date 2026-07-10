@@ -36,7 +36,7 @@ export default function ClipGrid({
       const zip = new JSZip()
       let completed = 0
 
-      // Fetch semua klip paralel
+      // Fetch semua klip paralel (Sekarang aman karena CORS udah dibuka!)
       const results = await Promise.allSettled(
         clipsWithUrl.map(async (clip) => {
           const res = await fetch(clip.storageUrl!)
@@ -58,8 +58,8 @@ export default function ClipGrid({
       a.download = `${slug}_${clipsWithUrl.length}clip.zip`
       a.click()
       URL.revokeObjectURL(a.href)
-    } catch {
-      // silent
+    } catch (e) {
+      console.error("Gagal nge-zip:", e)
     } finally {
       setZipping(false)
     }
@@ -68,7 +68,7 @@ export default function ClipGrid({
   if (isProcessing) {
     return (
       <div className="flex items-center justify-center min-h-64">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-8 py-6 w-full max-w-sm">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-8 py-6 w-full max-w-sm shadow-xl">
           <ProcessingCard
             projectId={projectId}
             initialProgress={progress}
@@ -106,18 +106,18 @@ export default function ClipGrid({
           <button
             onClick={handleDownloadAllZip}
             disabled={zipping}
-            className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg
-              bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50
-              text-white disabled:text-white/60 transition-all"
+            className="flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-lg
+              bg-purple-600 hover:bg-purple-500 disabled:bg-purple-600/50
+              text-white disabled:text-white/60 transition-all duration-200 active:scale-95 shadow-[0_0_15px_rgba(147,51,234,0.3)]"
           >
             {zipping ? (
               <>
-                <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                Mengompres...
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Mengompres ZIP...
               </>
             ) : (
               <>
-                <Download size={15} />
+                <Download size={16} />
                 Download All ({clipsWithUrl.length} klip)
               </>
             )}

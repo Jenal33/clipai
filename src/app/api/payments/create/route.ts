@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
       snapToken: data.token,
       redirectUrl: data.redirect_url,
       paymentId: payment.id,
+      orderId: payment.orderId,
     })
 
   } catch (err) {

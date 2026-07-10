@@ -65,7 +65,7 @@ export async function middleware(req: NextRequest) {
   // Dashboard → redirect ke /login kalau belum login
   if (pathname.startsWith('/dashboard')) {
     if (!token) {
-      const loginUrl = new URL('/login', req.url)
+      const loginUrl = new URL('/auth', req.url)
       loginUrl.searchParams.set('callbackUrl', pathname)
       return NextResponse.redirect(loginUrl)
     }
